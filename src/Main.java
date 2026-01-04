@@ -1,6 +1,7 @@
 import codedraw.*;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,9 +16,10 @@ class Main {
     static List<SceneObject> scene = new ArrayList<>();
 
     static Vec3 position = new Vec3(0,0,0);
+    static Vec2 rotation = new Vec2(0,0);
 
     public static void main(String[] args) throws IOException {
-        maxHeight = 800;
+        maxHeight = 1400;
         maxWidth = 2400;
         FPS = 60;
         window = new CodeDraw(maxWidth, maxHeight);
@@ -31,52 +33,70 @@ class Main {
 
 
         JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setFileFilter(new FileNameExtensionFilter("OBJ File","obj"));
         fileChooser.showSaveDialog(null);
         ObjReader penger = new ObjReader(fileChooser.getSelectedFile().getAbsolutePath());
-        scene.add(new SceneObject(penger, new Vec3(1,0,1)));
-        scene.add(new SceneObject(penger, new Vec3(-1,0,1)));
+        scene.add(new SceneObject(penger, new Vec3(0,0,1), true));
+//        for (int j = 0; j < penger.vertexBuffer.length; j++) {
+//            penger.vertexBuffer[j] = rotate_xz(penger.vertexBuffer[j], Math.PI);
+//        }
+//        scene.add(new SceneObject(penger, new Vec3(-0.5,0,1), false));
         while(true) {
             double dx = i * dt;
             angle += 2 * Math.PI * dt * 0.1;
-            angle %= 360;
+            angle %= 2 * Math.PI;
 
-            for (var e : window.getEventScanner()) {
-                if (Objects.requireNonNull(e) instanceof KeyPressEvent event) {
-                    Key key = event.getKey();
-                    switch (key) {
-                        case W -> position.z -= dt;
-                        case S -> position.z += dt;
-                        case D -> position.x -= dt;
-                        case A -> position.x += dt;
-                        case SPACE -> position.y += dt;
-                        case SHIFT -> position.y -= dt;
-                        default -> {
-                        }
-                    }
-                }
-            }
-
-
-            for (SceneObject obj : scene) {
-                for (int[] f : obj.object.faceBuffer) {
-                    for (int j = 0; j < f.length; j++) {
-                        Vec3 a = penger.vertexBuffer.get(f[j] - 1);
-                        Vec3 b = penger.vertexBuffer.get(f[(j + 1) % f.length] - 1);
-                        a = translate_y(translate_z(rotate_xz(a, angle), 1), 0);
-                        b = translate_y(translate_z(rotate_xz(b, angle), 1), 0);
-
-                        drawLine3D(applyPosition(translate(a, obj.position)), applyPosition(translate(b, obj.position)));
-                    }
-                }
-            }
+            handleInput(dt);
+            renderScene(angle);
             window.show(1000/FPS);
             window.clear();
             i++;
         }
     }
 
-    private static Vec3 applyPosition(Vec3 point) {
-        return translate(point, position);
+    private static void handleInput(double dt) {
+        for (var e : window.getEventScanner()) {
+            if (Objects.requireNonNull(e) instanceof KeyPressEvent event) {
+                Key key = event.getKey();
+                switch (key) {
+                    case W -> position.z -= dt;
+                    case S -> position.z += dt;
+                    case D -> position.x -= dt;
+                    case A -> position.x += dt;
+                    case SPACE -> position.y += dt;
+                    case SHIFT -> position.y -= dt;
+
+                    case LEFT -> rotation.x -= dt;
+                    case RIGHT -> rotation.x += dt;
+                    case UP -> rotation.y -= dt;
+                    case DOWN -> rotation.y += dt;
+                    default -> {
+                    }
+                }
+            }
+        }
+    }
+
+    private static void renderScene(double angle) {
+        for (SceneObject obj : scene) {
+            for (int[] f : obj.object.faceBuffer) {
+                for (int j = 0; j < f.length; j++) {
+                    Vec3 a = obj.object.vertexBuffer[f[j] - 1];
+                    Vec3 b = obj.object.vertexBuffer[f[(j + 1) % f.length] - 1];
+                    if (obj.rotate) {
+                        a = rotate_xz(a, angle);
+                        b = rotate_xz(b, angle);
+                    }
+
+                    drawLine3D( applyCameraPosition(translate(a, obj.position)),
+                                applyCameraPosition(translate(b, obj.position)));
+                }
+            }
+        }
+    }
+
+    private static Vec3 applyCameraPosition(Vec3 point) {
+        return rotate_yz(rotate_xz(translate(point, position), rotation.x), rotation.y);
     }
 
     private static Vec3 translate(Vec3 point, Vec3 translation) {

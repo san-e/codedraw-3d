@@ -3,8 +3,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ObjReader {
-    List<Vec3> vertexBuffer = new ArrayList<>();
-    List<int[]> faceBuffer = new ArrayList<>();
+    Vec3[] vertexBuffer;
+    int[][] faceBuffer;
 
     public ObjReader(String path) throws IOException {
         // Creating BufferedReader for Input
@@ -15,6 +15,9 @@ public class ObjReader {
                 = new BufferedReader(new FileReader(path));
         String st;
         String[] line;
+
+        List<Vec3> vb = new ArrayList<>();
+        List<int[]> fb = new ArrayList<>();
 
         while ((st = bfro.readLine()) != null) {
             line = st.split(" ");
@@ -27,14 +30,14 @@ public class ObjReader {
                         double x = Double.parseDouble(line[1]);
                         double y = Double.parseDouble(line[2]);
                         double z = Double.parseDouble(line[3]);
-                        vertexBuffer.add(new Vec3(x, y, z));
+                        vb.add(new Vec3(x, y, z));
                     }
                     else if (line.length == 5) {
                         double x = Double.parseDouble(line[1]);
                         double y = Double.parseDouble(line[2]);
                         double z = Double.parseDouble(line[3]);
                         double w = Double.parseDouble(line[4]);
-                        vertexBuffer.add(new Vec3(x/w, y/w, z/w));
+                        vb.add(new Vec3(x/w, y/w, z/w));
                     }
                     break;
                 case "f":
@@ -44,9 +47,11 @@ public class ObjReader {
                         int a = Integer.parseInt(index.split("/")[0]);
                         indices[i-1] = a;
                     }
-                    faceBuffer.add(indices);
+                    fb.add(indices);
 
             }
         }
+        vertexBuffer = vb.toArray(new Vec3[0]);
+        faceBuffer = fb.toArray(new int[0][]);
     }
 }
